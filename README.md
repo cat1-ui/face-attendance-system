@@ -83,3 +83,9 @@ npm run dev      # http://localhost:5173，/api 由 vite 代理到 8000
 - SQLite 单写者模型，高并发签到会排队
 - 前端依赖 vite 代理访问后端，正式部署需自行配置反向代理
 - insightface 首次加载模型有数秒延迟（已在启动时预热规避）
+
+## 许可证
+
+本项目源码采用 [MIT](./LICENSE)。
+
+注意：`insightface` 的**代码**是 MIT，但它提供的**预训练模型（buffalo_l 等）仅限非商业学术研究用途**，商用需单独向 insightface 申请授权。模型权重未纳入本仓库，需要自行下载，使用时请一并遵守模型自身的许可条款。
