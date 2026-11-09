@@ -1,0 +1,39 @@
+# ===== 虚拟环境 =====
+.venv/
+venv/
+
+# ===== Python 缓存 =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# ===== IDE / 工具 =====
+.idea/
+.vscode/
+.workbuddy/
+
+# ===== 前端依赖与构建产物 =====
+node_modules/
+dist/
+*.log
+npm-debug.log*
+
+# ===== 环境变量与密钥 =====
+.env
+.env.*
+!.env.example
+
+# ===== 业务数据与真人脸数据（隐私，禁止入库）=====
+# data/ 下只保留建表脚本，其余（db、备份、班级/专业名单 csv）一律排除
+backend/data/*
+!backend/data/schema.sql
+backend/faces/
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# ===== 系统文件 =====
+.DS_Store
+Thumbs.db

@@ -1,0 +1,13 @@
+# 学生刷脸考勤系统 - 后端依赖（Python 3.11 锁定）
+# 说明：numpy 必须 <2.0，onnxruntime 用 CPU 版，这是 insightface 兼容的关键
+
+fastapi==0.136.0
+uvicorn[standard]==0.30.6
+sqlalchemy==2.0.36
+pydantic==2.9.2
+numpy==1.26.4
+pandas==2.2.3
+insightface==1.0.1
+onnxruntime==1.28.0
+opencv-python==4.10.0.84
+python-multipart==0.0.12

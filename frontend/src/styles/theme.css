@@ -1,0 +1,105 @@
+/* ============================================
+   全局主题 - 霜白极简 · 霜蓝主色
+   通过覆盖 Element Plus 的 CSS 变量定制主题，
+   配合 App.vue 与各页面的 scoped 样式实现整体美化。
+   设计关键词：极致留白、柔和阴影、低饱和霜蓝、克制。
+   ============================================ */
+
+:root {
+  /* ---------- 主色：霜蓝 #5B7A99 ---------- */
+  --el-color-primary: #5b7a99;
+  --el-color-primary-light-3: #7c95ad;
+  --el-color-primary-light-5: #9cb0c2;
+  --el-color-primary-light-7: #bccbd7;
+  --el-color-primary-light-8: #ccd8e1;
+  --el-color-primary-light-9: #eef2f5;
+  --el-color-primary-dark-2: #47607a;
+
+  /* ---------- 全局背景：霜白 ---------- */
+  --el-bg-color-page: #f7f8fa;
+
+  /* ---------- 成功/警告/危险等辅助色（保持协调，略微降低饱和度） ---------- */
+  --el-color-success: #67a08a;
+  --el-color-warning: #c9a06a;
+  --el-color-danger: #c06b6b;
+  --el-color-info: #909aa6;
+
+  /* ---------- 通用圆角与阴影：更柔和 ---------- */
+  --el-border-radius-base: 8px;
+
+  /* ---------- 文字色阶 ---------- */
+  --el-text-color-primary: #2b3644;
+  --el-text-color-regular: #4a5563;
+  --el-text-color-secondary: #8a94a1;
+}
+
+/* 全局卡片：统一柔和阴影 + 圆角 */
+.el-card {
+  border-radius: 8px;
+  border: 1px solid #eceff3;
+  box-shadow: 0 1px 3px rgba(43, 54, 68, 0.04);
+  transition: box-shadow 0.2s ease;
+}
+.el-card:hover {
+  box-shadow: 0 2px 8px rgba(43, 54, 68, 0.07);
+}
+
+/* 卡片头部：更轻的分隔线 */
+.el-card__header {
+  border-bottom: 1px solid #f0f2f5;
+  font-weight: 600;
+  color: #2b3644;
+}
+
+/* 表格：表头用浅霜蓝底，更柔和 */
+.el-table th.el-table__cell {
+  background: #f4f6f8 !important;
+  color: #4a5563;
+  font-weight: 600;
+}
+
+/* 按钮：主按钮更克制 */
+.el-button--primary {
+  --el-button-hover-bg-color: #4c6a89;
+  --el-button-hover-border-color: #4c6a89;
+}
+
+/* 标签：统一 pill 圆角 */
+.el-tag {
+  border-radius: 999px;
+}
+
+/* 分页：激活态用主色 */
+.el-pagination.is-background .el-pager li.is-active {
+  background-color: #5b7a99;
+}
+
+/* 菜单：选中态改成浅灰底 + 左短条，更克制 */
+.el-menu {
+  border-right: none;
+}
+.el-menu-item {
+  height: 46px;
+  line-height: 46px;
+  margin: 2px 8px;
+  border-radius: 6px;
+  color: #4a5563;
+}
+.el-menu-item:hover {
+  background: #f1f3f6;
+}
+.el-menu-item.is-active {
+  background: #eef2f5;
+  color: #5b7a99;
+  font-weight: 600;
+}
+
+/* 输入框聚焦：主色 */
+.el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 1px #5b7a99 inset;
+}
+
+/* 弹窗：更柔和的圆角与阴影 */
+.el-dialog {
+  border-radius: 10px;
+}
