@@ -6,12 +6,13 @@ echo ============================================
 echo   安装后端依赖（首次运行需要）
 echo ============================================
 
-rem 用系统 Python 3.11 创建虚拟环境
+rem 用 PATH 里的 Python 创建虚拟环境（推荐 3.11；找不到就把下面的 python 改成完整路径）
 if not exist ".venv\Scripts\python.exe" (
     echo 正在创建虚拟环境...
-    "D:\python311\python.exe" -m venv ".venv"
+    python -m venv ".venv"
     if errorlevel 1 (
-        echo [错误] 创建虚拟环境失败，请确认 D:\python311\python.exe 存在
+        echo [错误] 创建虚拟环境失败：请确认 python 已加入 PATH
+        echo        或把本脚本里的 python 改成你的解释器完整路径
         pause
         exit /b 1
     )

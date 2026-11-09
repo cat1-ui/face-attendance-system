@@ -6,6 +6,7 @@
 3. 预热 insightface 模型单例（避免首次请求卡顿）
 """
 from contextlib import asynccontextmanager
+import os
 
 # 关键：必须先于 pandas 加载 onnxruntime，避免 Windows 下
 # onnxruntime 与 pyarrow（pandas 间接依赖）的 C++ DLL 冲突
@@ -42,12 +43,21 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="学生刷脸考勤系统", version="1.0.0", lifespan=lifespan)
 
-# 跨域配置：允许前端 dev 服务器访问
+# 跨域配置：只放行前端 dev 服务器（默认 Vite 5173）
+# 换域名/端口时用环境变量 ALLOW_ORIGINS 覆盖，逗号分隔
+ALLOW_ORIGINS = [
+    o.strip()
+    for o in os.getenv(
+        "ALLOW_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+    ).split(",")
+    if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 本地开发放行，生产需收紧
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=ALLOW_ORIGINS,
+    # 接口不依赖 Cookie/凭据；开着 credentials 又配 "*" 属于无效且危险的组合
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
 
