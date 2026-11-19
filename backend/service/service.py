@@ -205,19 +205,37 @@ class FaceService:
         return self.repo.list_by_student(student_id)
 
     def delete_face(self, face_id: int):
-        """删单张脸照：三处同步"""
+        """删单张脸照：三处同步（向量库 / 磁盘 / SQLite），并回写学生的录入状态
+
+        为什么要回写 face_status：
+            它是为了省一次 join 而冗余在学生表上的字段，统计接口直接读它算覆盖率。
+            如果只删脸照不动它，就会出现「统计说已录入 1 人，实际一张照片都没有」
+            的不一致——冗余字段必须由唯一的数据源（faces 表）驱动更新。
+        """
         face = self.repo.get_by_face_id(face_id)
         if not face:
             return False
 
-        # 删 Milvus
+        student_id = face.student_id
+
+        # 删 Milvus（本地 numpy 实现，向量存 face_vectors 表）
         milvus.get_milvus().delete(collection_name=MILVUS_COLLECTION, ids=[face_id])
         # 删磁盘
         if face.image_path and os.path.exists(face.image_path):
             os.remove(face.image_path)
         # 删 SQLite
         self.repo.delete_by_face_id(face_id)
-        self.db.commit()  # 事务边界：Service 层提交
+        # 注意：Session 是 autoflush=False 建的，session.delete() 只做标记，
+        # 不 flush 的话下面那条 "还剩几张" 的查询看不到这次删除，会误判成还有脸照
+        self.db.flush()
+
+        # 该学生已无任何脸照 → 状态回写为未录入
+        if not self.repo.list_by_student(student_id):
+            student = self.student_repo.get_by_id(student_id)
+            if student:
+                student.face_status = 0
+
+        self.db.commit()  # 事务边界：Service 层提交，四处改动要么一起成功要么都不生效
         return True
 
 
