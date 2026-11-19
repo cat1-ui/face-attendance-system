@@ -84,6 +84,49 @@ npm run dev      # http://localhost:5173，/api 由 vite 代理到 8000
 - 前端依赖 vite 代理访问后端，正式部署需自行配置反向代理
 - insightface 首次加载模型有数秒延迟（已在启动时预热规避）
 
+## 登录与权限
+
+系统有账号体系，所有业务接口都需要登录，写操作仅限管理员。
+
+**创建账号**（首次部署必须执行一次）：
+
+```bash
+cd backend
+.venv/Scripts/python.exe tools/init_admin.py --username admin --role admin
+```
+
+脚本会提示设置密码（bcrypt 哈希入库，不存明文）。`--role viewer` 可建只读账号。
+
+| 角色 | 权限 |
+|---|---|
+| `admin` | 全部读写（学生增删改、人脸录入、公告发布、CSV 导入） |
+| `viewer` | 只读（查询学生、考勤、统计、公告、人脸图片） |
+
+鉴权设计：
+
+- **JWT（HS256）**，默认 8 小时过期；载荷只放 `sub / username / role / exp`，不放敏感信息
+- **密码 bcrypt 哈希**，每次带随机 salt；校验失败与用户不存在返回同一句提示，避免枚举用户名
+- **保护范围**：`/api/auth/*` 与 `/health` 公开，其余 `/api/*` 统一挂登录依赖；写接口再叠加 `require_admin`
+- **WebSocket**：握手时校验 `?token=`，非法直接以 1008 关闭，不占连接池
+- **签名密钥**：读环境变量 `JWT_SECRET`，未设置时用开发默认值并告警（生产必须设置）
+
+```bash
+# 生产部署时通过环境变量注入
+JWT_SECRET=<随机长字符串> JWT_EXPIRE_MINUTES=480 docker compose up -d
+```
+
+自检脚本（覆盖登录、401、403、WebSocket 鉴权）：
+
+```bash
+cd backend && .venv/Scripts/python.exe tools/verify_auth.py
+```
+
+已知取舍（面试也常被问）：
+
+- token 存 `localStorage`，实现简单但**XSS 可读**；更稳的做法是 HttpOnly Cookie + CSRF token
+- WebSocket 用 query 传 token，因为浏览器原生 WS 不支持自定义请求头；生产应走 `wss`
+- 无刷新 token / 无登出黑名单：JWT 到期即失效，主动登出只清本地存储
+
 ## 容器化部署
 
 前后端各一个镜像，用 compose 编排；Nginx 同时负责托管前端静态文件和反代接口、WebSocket。

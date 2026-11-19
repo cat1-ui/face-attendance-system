@@ -1,5 +1,8 @@
 <template>
-  <el-container class="layout">
+  <!-- 登录页等公开页面不套后台布局 -->
+  <router-view v-if="$route.meta.public" />
+
+  <el-container v-else class="layout">
     <!-- 顶部工具栏 -->
     <el-header class="header">
       <div class="brand">
@@ -10,6 +13,12 @@
         <el-badge :is-dot="noticeStore.hasNew" class="bell">
           <el-icon :size="20" @click="goNotices"><Bell /></el-icon>
         </el-badge>
+        <el-tag v-if="userStore.profile" size="small" :type="userStore.isAdmin ? 'success' : 'info'">
+          {{ userStore.profile.username }} · {{ userStore.isAdmin ? '管理员' : '只读' }}
+        </el-tag>
+        <el-tooltip content="退出登录" placement="bottom">
+          <el-icon :size="18" class="logout" @click="onLogout"><SwitchButton /></el-icon>
+        </el-tooltip>
         <span class="datetime">{{ datetime }}</span>
       </div>
     </el-header>
@@ -55,13 +64,17 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElNotification } from 'element-plus'
 import { useNoticeStore } from './stores/notice'
+import { useUserStore } from './stores/user'
+import { fetchMe } from './api/auth'
 import { createNoticeSocket } from './utils/websocket'
 
+const route = useRoute()
 const router = useRouter()
 const noticeStore = useNoticeStore()
+const userStore = useUserStore()
 const datetime = ref('')
 let closeSocket = null
 let timer = null
@@ -76,10 +89,27 @@ function goNotices() {
   router.push('/notices')
 }
 
-onMounted(() => {
+onMounted(async () => {
   updateTime()
   timer = setInterval(updateTime, 1000)
 
+  // 公开页（登录页）不拉用户信息、不建长连接
+  if (route.meta.public) return
+
+  // 刷新后恢复用户信息；token 失效时拦截器会踢回登录页
+  try {
+    const me = await fetchMe()
+    userStore.setProfile(me)
+  } catch (e) {
+    userStore.logout()
+    router.replace('/login')
+    return
+  }
+
+  connectSocket()
+})
+
+function connectSocket() {
   // 连接 WebSocket，收到公告推送
   closeSocket = createNoticeSocket((notice) => {
     noticeStore.onPush(notice)
@@ -89,7 +119,16 @@ onMounted(() => {
       type: 'info',
     })
   })
-})
+}
+
+function onLogout() {
+  if (closeSocket) {
+    closeSocket()
+    closeSocket = null
+  }
+  userStore.logout()
+  router.replace('/login')
+}
 
 onUnmounted(() => {
   clearInterval(timer)
@@ -138,6 +177,13 @@ onUnmounted(() => {
 }
 .bell:hover {
   color: #5b7a99;
+}
+.logout {
+  cursor: pointer;
+  color: #4a5563;
+}
+.logout:hover {
+  color: #c45656;
 }
 .datetime {
   color: #8a94a1;

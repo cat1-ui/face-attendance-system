@@ -1,6 +1,9 @@
 // WebSocket 封装：连接公告推送通道，自动重连
 export function createNoticeSocket(onMessage) {
-  const url = `ws://${location.host}/ws/notices`
+  // 浏览器原生 WebSocket 不能带自定义请求头，token 只能放 query
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws'
+  const token = localStorage.getItem('attendance_token') || ''
+  const url = `${proto}://${location.host}/ws/notices?token=${encodeURIComponent(token)}`
   let ws = null
   let timer = null
   let closed = false

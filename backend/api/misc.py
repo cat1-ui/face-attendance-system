@@ -7,6 +7,7 @@ from core.ws_manager import manager
 from schemas import NoticeCreate, NoticeOut, NoticeUpdate
 from service.service import NoticeService
 from common.response import ApiResponse
+from core.security import require_admin
 
 router = APIRouter(tags=["枚举/公告"])
 
@@ -32,7 +33,8 @@ def list_notices(
 
 @router.post("/api/notices", response_model=ApiResponse[dict], status_code=201)
 async def create_notice(data: NoticeCreate, background_tasks: BackgroundTasks,
-                        svc: NoticeService = Depends(get_notice_service)):
+                        svc: NoticeService = Depends(get_notice_service),
+                        _admin=Depends(require_admin)):
     n = svc.create(data.model_dump())
     notice_dict = NoticeOut.model_validate(n).model_dump()
     # 后台任务：广播公告给所有在线客户端（不阻塞响应）
@@ -52,7 +54,8 @@ def get_notice(nid: int, svc: NoticeService = Depends(get_notice_service)):
 
 
 @router.put("/api/notices/{nid}", response_model=ApiResponse[dict])
-def update_notice(nid: int, data: NoticeUpdate, svc: NoticeService = Depends(get_notice_service)):
+def update_notice(nid: int, data: NoticeUpdate, svc: NoticeService = Depends(get_notice_service),
+                  _admin=Depends(require_admin)):
     n = svc.update(nid, data.model_dump())
     if not n:
         raise HTTPException(status_code=404, detail="公告不存在")
@@ -60,7 +63,8 @@ def update_notice(nid: int, data: NoticeUpdate, svc: NoticeService = Depends(get
 
 
 @router.delete("/api/notices/{nid}", response_model=ApiResponse)
-def delete_notice(nid: int, svc: NoticeService = Depends(get_notice_service)):
+def delete_notice(nid: int, svc: NoticeService = Depends(get_notice_service),
+                  _admin=Depends(require_admin)):
     if not svc.delete(nid):
         raise HTTPException(status_code=404, detail="公告不存在")
     return ApiResponse(message="删除成功")

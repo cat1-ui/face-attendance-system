@@ -12,6 +12,7 @@ from api.deps import get_student_service
 from schemas import StudentCreate, StudentUpdate
 from service.service import StudentService
 from common.response import ApiResponse
+from core.security import require_admin
 
 router = APIRouter(prefix="/api/students", tags=["学生管理"])
 
@@ -69,7 +70,8 @@ def get_student(sid: int, svc: StudentService = Depends(get_student_service)):
 
 
 @router.post("", response_model=ApiResponse[dict], status_code=201)
-def create_student(data: StudentCreate, svc: StudentService = Depends(get_student_service)):
+def create_student(data: StudentCreate, svc: StudentService = Depends(get_student_service),
+                   _admin=Depends(require_admin)):
     try:
         s = svc.create(data)
         return ApiResponse(data=s.model_dump())
@@ -78,7 +80,8 @@ def create_student(data: StudentCreate, svc: StudentService = Depends(get_studen
 
 
 @router.put("/{sid}", response_model=ApiResponse[dict])
-def update_student(sid: int, data: StudentUpdate, svc: StudentService = Depends(get_student_service)):
+def update_student(sid: int, data: StudentUpdate, svc: StudentService = Depends(get_student_service),
+                   _admin=Depends(require_admin)):
     s = svc.update(sid, data)
     if not s:
         raise HTTPException(status_code=404, detail="学生不存在")
@@ -86,7 +89,8 @@ def update_student(sid: int, data: StudentUpdate, svc: StudentService = Depends(
 
 
 @router.delete("/{sid}", response_model=ApiResponse)
-def delete_student(sid: int, svc: StudentService = Depends(get_student_service)):
+def delete_student(sid: int, svc: StudentService = Depends(get_student_service),
+                   _admin=Depends(require_admin)):
     ok_flag = svc.delete(sid)
     if not ok_flag:
         raise HTTPException(status_code=404, detail="学生不存在")
@@ -97,6 +101,7 @@ def delete_student(sid: int, svc: StudentService = Depends(get_student_service))
 async def import_students(
     file: UploadFile = File(..., description="CSV 文件（含 student_no,name,gender,age,class_name,major,enroll_year,phone 列）"),
     svc: StudentService = Depends(get_student_service),
+    _admin=Depends(require_admin),
 ):
     """批量导入学生 CSV"""
     content = await file.read()

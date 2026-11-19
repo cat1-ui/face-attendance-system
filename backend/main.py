@@ -13,10 +13,13 @@ import os
 # （先加载 pandas 会导致 onnxruntime 的 onnxruntime_pybind11_state DLL 初始化失败）
 import onnxruntime  # noqa: F401
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from sqlalchemy.orm import Session
+
 from core import enums
+from core.db import get_db
 from common import register_exceptions
 
 
@@ -65,18 +68,38 @@ app.add_middleware(
 register_exceptions(app)
 
 # 注册路由
-from api import students, faces, misc, stats, ws, attendance
-app.include_router(students.router)
-app.include_router(faces.router)
-app.include_router(misc.router)
-app.include_router(stats.router)
+# auth 公开（登录本身不需要 token）；业务路由统一挂登录校验，
+# WebSocket 不能走 HTTP 依赖，改在端点内部校验 token
+from api import auth, students, faces, misc, stats, ws, attendance
+from core.security import get_current_user
+
+app.include_router(auth.router)
+
+login_required = [Depends(get_current_user)]
+app.include_router(students.router, dependencies=login_required)
+app.include_router(faces.router, dependencies=login_required)
+app.include_router(misc.router, dependencies=login_required)
+app.include_router(stats.router, dependencies=login_required)
+app.include_router(attendance.router, dependencies=login_required)
 app.include_router(ws.router)
-app.include_router(attendance.router)
 
 
 @app.get("/")
 def root():
     return {"code": 0, "message": "学生刷脸考勤系统后端运行中", "data": None}
+
+
+@app.get("/health")
+def health(db: Session = Depends(get_db)):
+    """健康检查：公开接口，容器编排与负载均衡用。
+
+    为什么不复用业务接口：业务接口挂了鉴权后返回 401，
+    会让健康检查误判为「服务不可用」——健康检查应只关心进程与依赖是否就绪。
+    """
+    from sqlalchemy import text
+
+    db.execute(text("SELECT 1"))
+    return {"status": "ok"}
 
 
 if __name__ == "__main__":

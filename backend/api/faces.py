@@ -8,6 +8,7 @@ from api.deps import get_face_service
 from schemas import FaceOut
 from service.service import FaceService
 from common.response import ApiResponse
+from core.security import require_admin
 
 router = APIRouter(tags=["人脸录入"])
 
@@ -17,6 +18,7 @@ async def enroll_face(
     sid: int,
     file: UploadFile = File(..., description="人脸照片"),
     svc: FaceService = Depends(get_face_service),
+    _admin=Depends(require_admin),
 ):
     """上传脸照，检测人脸并三处落库"""
     content = await file.read()
@@ -48,7 +50,8 @@ def get_face_image(face_id: int, svc: FaceService = Depends(get_face_service)):
 
 
 @router.delete("/api/faces/{face_id}", response_model=ApiResponse)
-def delete_face(face_id: int, svc: FaceService = Depends(get_face_service)):
+def delete_face(face_id: int, svc: FaceService = Depends(get_face_service),
+                _admin=Depends(require_admin)):
     ok_flag = svc.delete_face(face_id)
     if not ok_flag:
         raise HTTPException(status_code=404, detail="脸照不存在")

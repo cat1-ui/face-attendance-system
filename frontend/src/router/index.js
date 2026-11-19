@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useUserStore } from '../stores/user'
 
 const routes = [
+  { path: '/login', name: 'login', component: () => import('../views/Login.vue'), meta: { title: '登录', public: true } },
   { path: '/', redirect: '/students' },
   { path: '/students', name: 'students', component: () => import('../views/StudentList.vue'), meta: { title: '学生管理' } },
   { path: '/faces', name: 'faces', component: () => import('../views/FaceEnroll.vue'), meta: { title: '人脸录入' } },
@@ -13,6 +15,23 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+})
+
+// 路由守卫：未登录一律回登录页，并记住原本想去的地址
+// 这里读的是 Pinia 里的 token（初始化时从 localStorage 恢复）
+router.beforeEach((to) => {
+  const userStore = useUserStore()
+  if (!to.meta.public && !userStore.token) {
+    return { path: '/login', query: { redirect: to.fullPath } }
+  }
+  if (to.path === '/login' && userStore.token) {
+    return { path: '/students' }
+  }
+  return true
+})
+
+router.afterEach((to) => {
+  document.title = to.meta.title ? `${to.meta.title} · 学生刷脸考勤系统` : '学生刷脸考勤系统'
 })
 
 export default router

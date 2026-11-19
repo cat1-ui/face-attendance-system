@@ -14,6 +14,10 @@ services:
       # 同源部署时接口由 Nginx 转发，理论上不需要跨域；
       # 这里留 8080 是为了方便在浏览器里直连后端调试
       ALLOW_ORIGINS: http://localhost:8080,http://127.0.0.1:8080
+      # JWT 签名密钥：不设则用代码里的开发默认值（启动会告警）
+      # 生产环境请在 .env 或 shell 里导出：JWT_SECRET=<随机长字符串>
+      JWT_SECRET: ${JWT_SECRET:-}
+      JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-480}
     volumes:
       # 数据持久化到宿主目录：容器删了，学生/考勤数据还在
       - ./backend/data:/app/data
@@ -23,11 +27,13 @@ services:
     ports:
       - "8000:8000"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/api/enums', timeout=3)"]
-      interval: 15s
+      # 用公开的 /health，而不是业务接口：业务接口加了鉴权后返回 401，会被误判为不可用
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 10s
       timeout: 5s
-      retries: 10
-      start_period: 60s
+      retries: 6
+      # 2 个 worker 各自要加载一遍 insightface 模型，实测冷启动约 2 分钟
+      start_period: 180s
     restart: unless-stopped
 
   frontend:

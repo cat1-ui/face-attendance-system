@@ -11,3 +11,7 @@ insightface==1.0.1
 onnxruntime==1.28.0
 opencv-python==4.10.0.84
 python-multipart==0.0.12
+
+# 认证：JWT 签发校验 + 密码哈希
+PyJWT>=2.8
+bcrypt>=4.0

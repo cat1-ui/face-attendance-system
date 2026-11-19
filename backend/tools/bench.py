@@ -49,7 +49,7 @@ def wait_ready(url, timeout=120):
     t0 = time.time()
     while time.time() - t0 < timeout:
         try:
-            if requests.get(f"{url}/api/enums", timeout=2).status_code == 200:
+            if requests.get(f"{url}/health", timeout=2).status_code == 200:
                 return True
         except Exception:
             pass

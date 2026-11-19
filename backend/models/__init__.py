@@ -4,5 +4,6 @@ from .student import Student
 from .face import Face
 from .notice import Notice
 from .attendance import Attendance
+from .user import User
 
-__all__ = ["Base", "Student", "Face", "Notice", "Attendance"]
+__all__ = ["Base", "Student", "Face", "Notice", "Attendance", "User"]

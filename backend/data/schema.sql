@@ -60,3 +60,14 @@ CREATE TABLE IF NOT EXISTS attendance (
     remark      VARCHAR(200),                               -- 备注
     FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
 );
+
+-- 用户表（登录鉴权）
+-- password_hash 存 bcrypt 哈希（含随机 salt），绝不存明文
+-- role：admin 可写 / viewer 只读，接口层用依赖注入判断
+CREATE TABLE IF NOT EXISTS users (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    username      VARCHAR(50) NOT NULL UNIQUE,
+    password_hash VARCHAR(128) NOT NULL,
+    role          VARCHAR(20) NOT NULL DEFAULT 'viewer',
+    created_at    DATETIME DEFAULT (datetime('now','localtime'))
+);

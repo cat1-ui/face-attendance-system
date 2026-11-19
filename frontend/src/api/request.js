@@ -7,6 +7,15 @@ const request = axios.create({
   timeout: 30000,
 })
 
+// 请求拦截器：统一带上 JWT
+request.interceptors.request.use((config) => {
+  const token = localStorage.getItem('attendance_token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
 // 响应拦截器：统一处理 {code, message, data}
 request.interceptors.response.use(
   (response) => {
@@ -24,8 +33,15 @@ request.interceptors.response.use(
   },
   (error) => {
     // HTTP 错误（4xx/5xx），后端已统一成 {code, message}
+    const status = error.response?.status
     const msg = error.response?.data?.message || error.message || '网络错误'
     ElMessage.error(msg)
+
+    // 401：凭证失效/过期，清掉本地 token 并回登录页（登录页自身的 401 不跳转）
+    if (status === 401 && location.pathname !== '/login') {
+      localStorage.removeItem('attendance_token')
+      location.assign(`/login?redirect=${encodeURIComponent(location.pathname)}`)
+    }
     return Promise.reject(error)
   }
 )
