@@ -1,11 +1,15 @@
 """核心配置 - 对应 Java 的 application.yml"""
+import os
 from pathlib import Path
 
 # 项目根目录（backend/ 的上一级）
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SQLite 数据库文件位置（放在 data/ 目录，对齐老师结构）
-DATABASE_URL = f"sqlite:///{BASE_DIR / 'data' / 'db.sqlite'}"
+# 可用环境变量 DATABASE_URL 覆盖，用于压测/测试环境隔离，不污染真实数据
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", f"sqlite:///{BASE_DIR / 'data' / 'db.sqlite'}"
+)
 
 # 脸照图片存放目录
 FACE_IMAGE_DIR = BASE_DIR / "faces"
