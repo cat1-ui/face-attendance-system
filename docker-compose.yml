@@ -1,0 +1,43 @@
+# 学生刷脸考勤系统 · 容器化部署
+#   启动：docker compose up -d --build
+#   访问：http://localhost:8080        （Nginx 托前端 + 反代接口）
+#         http://localhost:8000/docs   （后端接口文档，直连）
+#   停止：docker compose down
+
+services:
+  backend:
+    build:
+      context: ./backend
+    image: attendance-backend:1.0
+    container_name: attendance-backend
+    environment:
+      # 同源部署时接口由 Nginx 转发，理论上不需要跨域；
+      # 这里留 8080 是为了方便在浏览器里直连后端调试
+      ALLOW_ORIGINS: http://localhost:8080,http://127.0.0.1:8080
+    volumes:
+      # 数据持久化到宿主目录：容器删了，学生/考勤数据还在
+      - ./backend/data:/app/data
+      # insightface 模型用只读挂载，避免每个镜像塞几百 MB 权重
+      # 宿主需先有 C:\Users\<你>\.insightface（跑过一次后端就有了）
+      - ${USERPROFILE}/.insightface:/root/.insightface:ro
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/api/enums', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    image: attendance-frontend:1.0
+    container_name: attendance-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped

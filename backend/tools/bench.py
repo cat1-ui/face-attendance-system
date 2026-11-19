@@ -35,7 +35,7 @@ BENCH_DB = BASE_DIR / "data" / "bench.db"
 # 只压只读接口：写接口（签到）要带人脸图片，且会改数据，单独处理
 ENDPOINTS = [
     ("GET /api/students", "/api/students?page=1&page_size=20"),
-    ("GET /api/students/{id}", "/api/students/1"),
+    ("GET /api/students/{id}", "/api/students/{id}"),
     ("GET /api/attendance", "/api/attendance?page=1&page_size=20"),
     ("GET /api/attendance/stats", "/api/attendance/stats"),
     ("GET /api/stats/summary", "/api/stats/summary"),
@@ -123,21 +123,32 @@ def main():
     try:
         if not wait_ready(args.url):
             sys.exit("服务未就绪，压测中止")
+        # 详情接口的 id 不能写死：不同库的自增起点不同，写死 1 会全 404
+        sid = 1
+        try:
+            r = requests.get(f"{args.url}/api/students?page=1&page_size=1", timeout=5).json()
+            sid = r["data"]["items"][0]["id"]
+        except Exception:
+            pass
+        endpoints = [
+            (name, path.replace("{id}", str(sid))) for name, path in ENDPOINTS
+        ]
+
         print("服务就绪，开始预热…")
 
         # 预热
         with requests.Session() as s:
-            for name, path in ENDPOINTS:
+            for name, path in endpoints:
                 for _ in range(12):
                     run_one(s, args.url + path)
 
-        print(f"线程数 {args.concurrency}，每接口 {args.requests} 次请求\n")
+        print(f"线程数 {args.concurrency}，每接口 {args.requests} 次请求（详情接口用 id={sid}）\n")
         header = f"{'端点':<28}{'请求':>6}{'错误':>6}{'P50/ms':>9}{'P95/ms':>9}{'P99/ms':>9}{'QPS':>8}"
         print(header)
         print("-" * len(header.encode("gbk", errors="ignore")))
 
         all_lat, all_err, all_n = [], 0, 0
-        for name, path in ENDPOINTS:
+        for name, path in endpoints:
             url = args.url + path
             results, wall = bench_endpoint(url, args.requests, args.concurrency)
 

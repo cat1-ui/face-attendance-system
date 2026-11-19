@@ -84,6 +84,33 @@ npm run dev      # http://localhost:5173，/api 由 vite 代理到 8000
 - 前端依赖 vite 代理访问后端，正式部署需自行配置反向代理
 - insightface 首次加载模型有数秒延迟（已在启动时预热规避）
 
+## 容器化部署
+
+前后端各一个镜像，用 compose 编排；Nginx 同时负责托管前端静态文件和反代接口、WebSocket。
+
+```bash
+docker compose up -d --build     # 启动（首次构建约 5 分钟）
+docker compose ps                # 查看状态
+docker compose logs -f backend   # 看后端日志
+docker compose down              # 停止
+```
+
+| 入口 | 地址 | 说明 |
+|---|---|---|
+| 前端 | <http://localhost:8080> | Nginx 托管，SPA 路由已做 fallback |
+| 接口文档 | <http://localhost:8000/docs> | 直连后端，便于调试 |
+| WebSocket | `ws://localhost:8080/ws/notices` | 由 Nginx 升级协议转发 |
+
+设计要点：
+
+- **多阶段构建**：builder 阶段在独立 venv 里编译依赖（insightface 需要 C 编译器），runtime 阶段只拷贝 venv + 运行库，镜像里不留 gcc
+- **模型不打进镜像**：`~/.insightface` 以只读方式挂载，避免每个镜像多出几百 MB 权重
+- **数据持久化**：`backend/data` 挂载到宿主目录，容器删除后数据仍在
+- **镜像体积**：后端 1.55 GB（onnxruntime + insightface + opencv），前端 77 MB
+- **构建加速**：pip 与 Debian apt 源均换成国内镜像，apt 从 22 分钟降到 1 分钟内
+
+已知性能差异：在 Windows 上用 Docker Desktop 时，经端口映射的请求 P95 约 39ms，而容器内部自测仅 5.5ms——差额来自 WSL2 的 NAT 转发。生产环境直接跑在 Linux 上不会有这一跳。
+
 ## 许可证
 
 本项目源码采用 [MIT](./LICENSE)。

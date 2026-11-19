@@ -1,0 +1,20 @@
+# 虚拟环境与缓存不进构建上下文（否则构建极慢）
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.idea/
+.vscode/
+
+# 业务数据不进镜像：数据库、名单、备份、人脸照片
+# 注意保留 data/schema.sql——启动时要用它建表
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/*.sqlite
+data/*.csv
+data/bench.db
+faces/
+
+# 压测产物
+*.log
