@@ -28,8 +28,8 @@
         <el-table-column label="照片" width="100" align="center">
           <template #default="{ row }">
             <el-image
-              :src="faceImageUrl(row.face_id)"
-              :preview-src-list="[faceImageUrl(row.face_id)]"
+              :src="faceImages[row.face_id]"
+              :preview-src-list="faceImages[row.face_id] ? [faceImages[row.face_id]] : []"
               preview-teleported
               fit="cover"
               style="width: 64px; height: 64px; border-radius: 4px"
@@ -56,15 +56,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getStudents } from '../api/student'
 import { uploadFace, getFaces, deleteFace } from '../api/face'
+import { fetchImageObjectUrl } from '../utils/authImage'
 
 const students = ref([])
 const selectedId = ref(null)
 const faces = ref([])
 const faceLoading = ref(false)
+// face_id -> object URL（受保护图片必须带 token 取，不能直接塞给 <img src>）
+const faceImages = ref({})
 
 // 该学生是否已有脸照（限制每人只录 1 张）
 const hasFace = computed(() => faces.value.length >= 1)
@@ -94,15 +97,29 @@ async function loadFaces() {
   faceLoading.value = true
   try {
     faces.value = await getFaces(selectedId.value)
+    await loadFaceImages(faces.value)
   } finally {
     faceLoading.value = false
   }
 }
 
-// 拼接脸照图片地址（走 vite 代理到后端）
-function faceImageUrl(faceId) {
-  return `/api/faces/${faceId}/image`
+// 逐张取回脸照：请求经 axios，才会带上 Authorization
+async function loadFaceImages(rows) {
+  for (const row of rows) {
+    if (!row.face_id || faceImages.value[row.face_id]) continue
+    try {
+      faceImages.value[row.face_id] = await fetchImageObjectUrl(`/api/faces/${row.face_id}/image`)
+    } catch (e) {
+      // 单张失败不影响列表（例如文件已丢失）
+    }
+  }
 }
+
+onUnmounted(() => {
+  // object URL 不主动释放会一直占内存
+  Object.values(faceImages.value).forEach((url) => URL.revokeObjectURL(url))
+  faceImages.value = {}
+})
 
 async function handleUpload(file) {
   const fd = new FormData()

@@ -93,6 +93,10 @@ onMounted(async () => {
   updateTime()
   timer = setInterval(updateTime, 1000)
 
+  // 必须等路由完成首次解析：App 挂载早于路由就绪，
+  // 此时 route.meta 还是空对象，会把登录页误判成受保护页而去请求 /api/auth/me
+  await router.isReady()
+
   // 公开页（登录页）不拉用户信息、不建长连接
   if (route.meta.public) return
 
